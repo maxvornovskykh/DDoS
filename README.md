@@ -1,5 +1,5 @@
 # DDoS
-Simplest possible sandbox to play with slowloris atack [script](https://github.com/tj/slowloris)
+Simplest possible sandbox to play with slowloris attack [script](https://github.com/tj/slowloris)
 
 # Description
 App consists of two services:
